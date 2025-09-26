@@ -22,7 +22,7 @@ public class FiltroPaises {
 
             List<CSVRecord> registros = csvParser.getRecords();
             
-            // Usa Stream para extrair a coluna "ClientePaís", remover espaços e coletar apenas valores únicos (Set)
+            // extrair a coluna "ClientePaís", remover espaços e coletar apenas valores únicos (Set)
             Set<String> paisesUnicos = registros.stream()
                     .map(r -> r.get("ClientePaís").trim())
                     .filter(pais -> !pais.isEmpty())
@@ -32,7 +32,7 @@ public class FiltroPaises {
             System.out.println("****** LISTA DE PAÍSES ÚNICOS (Em Ordem Alfabética) ******");
             System.out.println("*******************************************************");
             
-            // Imprime a lista ordenada para facilitar a revisão
+           
             paisesUnicos.stream()
                         .sorted()
                         .forEach(System.out::println);
