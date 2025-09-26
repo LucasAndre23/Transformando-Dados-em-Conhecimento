@@ -72,7 +72,7 @@ public class LeitorCSV {
     private static void top10ClientesPorVendas() {
         Map<String, Double> vendasPorCliente = registros.stream()
                 .collect(Collectors.groupingBy(
-                        r -> r.get("ClienteNome"),
+                        r -> r.get("ClienteNome").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Vendas")))
                 ));
 
@@ -86,7 +86,7 @@ public class LeitorCSV {
     private static void top3PaisesPorVendas() {
         Map<String, Double> vendasPorPais = registros.stream()
                 .collect(Collectors.groupingBy(
-                        r -> r.get("ClientePaís"),
+                        r -> r.get("ClientePaís").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Vendas")))
                 ));
         
@@ -99,9 +99,9 @@ public class LeitorCSV {
     // 3. Quais as categorias de produtos que geram maior faturamento (vendas $) no Brasil?
     private static void maiorFaturamentoPorCategoriaNoBrasil() {
         Map<String, Double> faturamentoNoBrasil = registros.stream()
-                .filter(r -> "Brazil".equalsIgnoreCase(r.get("ClientePaís")))
+                .filter(r -> "Brazil".equalsIgnoreCase(r.get("ClientePaís").trim()))
                 .collect(Collectors.groupingBy(
-                        r -> r.get("CategoriaNome"),
+                        r -> r.get("CategoriaNome").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Vendas")))
                 ));
         
@@ -112,22 +112,29 @@ public class LeitorCSV {
 
     // 4. Qual a despesa com frete envolvendo cada transportadora?
     private static void despesaFretePorTransportadora() {
+        // Define o conjunto de IDs válidos para filtro (apenas 1, 2, 3)
+        Set<String> transportadorasValidas = Set.of("1", "2", "3");
+        
         Map<String, Double> fretePorTransportadora = registros.stream()
+                // FILTRO ADICIONADO: Mantém apenas os registros onde o ID é "1", "2" ou "3"
+                .filter(r -> transportadorasValidas.contains(r.get("TransportadoraID").trim()))
                 .collect(Collectors.groupingBy(
-                        r -> r.get("TransportadoraID"),
+                        r -> r.get("TransportadoraID").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Frete")))
                 ));
 
-        fretePorTransportadora.forEach((transportadora, frete) ->
-            System.out.printf("- Transportadora %s: R$ %.2f%n", transportadora, frete));
+        // A impressão agora só incluirá os resultados para as transportadoras filtradas (1, 2, 3).
+        fretePorTransportadora.forEach((transportadoraID, frete) -> {
+            System.out.printf("- Transportadora %s: R$ %.2f%n", transportadoraID, frete);
+        });
     }
 
     // 5. Quais são os principais clientes (vendas $) do segmento “Calçados Masculinos” (Men´s Footwear) na Alemanha?
     private static void principaisClientesCalcadosAlemanha() {
         Map<String, Double> vendasPorCliente = registros.stream()
-                .filter(r -> "Germany".equalsIgnoreCase(r.get("ClientePaís")) && "Men´s Footwear".equalsIgnoreCase(r.get("CategoriaNome")))
+                .filter(r -> "Germany".equalsIgnoreCase(r.get("ClientePaís").trim()) && "Men´s Footwear".equalsIgnoreCase(r.get("CategoriaNome").trim()))
                 .collect(Collectors.groupingBy(
-                        r -> r.get("ClienteNome"),
+                        r -> r.get("ClienteNome").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Vendas")))
                 ));
         
@@ -139,9 +146,9 @@ public class LeitorCSV {
     // 6. Quais os vendedores que mais dão descontos nos Estados Unidos?
     private static void vendedoresComMaisDescontoNosEUA() {
         Map<String, Double> descontoPorVendedor = registros.stream()
-                .filter(r -> "USA".equalsIgnoreCase(r.get("ClientePaís")))
+                .filter(r -> "USA".equalsIgnoreCase(r.get("ClientePaís").trim()))
                 .collect(Collectors.groupingBy(
-                        r -> r.get("VendedorID"),
+                        r -> r.get("VendedorID").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Desconto")))
                 ));
 
@@ -153,9 +160,9 @@ public class LeitorCSV {
     // 7. Quais os fornecedores que dão a maior margem de lucro ($) no segmento de “Vestuário Feminino” (Womens wear)?
     private static void fornecedoresMaiorMargemLucro() {
         Map<String, Double> margemPorFornecedor = registros.stream()
-                .filter(r -> "Womens wear".equalsIgnoreCase(r.get("CategoriaNome")))
+                .filter(r -> "Womens wear".equalsIgnoreCase(r.get("CategoriaNome").trim()))
                 .collect(Collectors.groupingBy(
-                        r -> r.get("FornecedorID"),
+                        r -> r.get("FornecedorID").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Margem Bruta")))
                 ));
 
@@ -167,71 +174,82 @@ public class LeitorCSV {
     // 8. Vendas Anuais (2009-2012) e a tendência
     private static void vendasAnuais() {
         
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            Map<Integer, Double> vendasPorAno = registros.stream()
-                    .collect(Collectors.groupingBy(
-                            r -> LocalDate.parse(r.get("Data"), formatter).getYear(),
-                            Collectors.summingDouble(r -> parseDoubleSafe(r.get("Vendas")))
-                    ));
-            
-            // Exibir as vendas por ano
-            vendasPorAno.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> System.out.printf("  - Vendas em %d: R$ %.2f%n", entry.getKey(), entry.getValue()));
-            
-            // Analisar a tendência entre 2009 e 2012
-            double vendas2009 = vendasPorAno.getOrDefault(2009, 0.0);
-            double vendas2012 = vendasPorAno.getOrDefault(2012, 0.0);
-            
-            String tendencia = "Mantendo-se estável";
-            if (vendas2012 > vendas2009) {
-                tendencia = "Crescendo";
-            } else if (vendas2012 < vendas2009) {
-                tendencia = "Decaindo";
-            }
-            
-            System.out.println("  Analisando 2009 e 2012, o faturamento está " + tendencia + ".");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        Map<Integer, Double> vendasPorAno = registros.stream()
+                .map(r -> new AbstractMap.SimpleEntry<>(getYearSafe(r, formatter), parseDoubleSafe(r.get("Vendas"))))
+                .filter(entry -> entry.getKey() >= 2009 && entry.getKey() <= 2012)
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.summingDouble(Map.Entry::getValue)
+                ));
+        
+        // Exibir as vendas por ano
+        vendasPorAno.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(entry -> System.out.printf("  - Vendas em %d: R$ %.2f%n", entry.getKey(), entry.getValue()));
+        
+        // Analisar a tendência entre 2009 e 2012
+        double vendas2009 = vendasPorAno.getOrDefault(2009, 0.0);
+        double vendas2012 = vendasPorAno.getOrDefault(2012, 0.0);
+        
+        String tendencia = "mantendo-se estável";
+        if (vendas2012 > vendas2009) {
+            tendencia = "crescendo"; // CORRIGIDO: De "mrescendo" para "crescendo"
+        } else if (vendas2012 < vendas2009) {
+            tendencia = "decaindo";
         }
         
+        System.out.println("  Analisando 2009 e 2012, o faturamento está " + tendencia + ".");
+    }
+    
     
     // 9. Principais clientes (vendas $) de 'Men´s Footwear' em 2013, e cidades de venda
     private static void principaisClientesCalcados2013() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        Map<String, Double> vendasPorCliente = registros.stream()
-                .filter(r -> "Men´s Footwear".equalsIgnoreCase(r.get("CategoriaNome")) && 
-                             LocalDate.parse(r.get("Data"), formatter).getYear() == 2013)
+        
+        // Filtra os registros para o ano de 2013 e a categoria desejada
+        List<CSVRecord> registros2013 = registros.stream()
+                .filter(r -> "Men´s Footwear".equalsIgnoreCase(r.get("CategoriaNome").trim()) && 
+                                getYearSafe(r, formatter) == 2013)
+                .collect(Collectors.toList());
+
+        // 1. Vendas por Cliente
+        Map<String, Double> vendasPorCliente = registros2013.stream()
                 .collect(Collectors.groupingBy(
-                        r -> r.get("ClienteNome"),
+                        r -> r.get("ClienteNome").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Vendas")))
                 ));
 
         vendasPorCliente.entrySet().stream()
                 .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
-                .forEach(entry -> System.out.printf("  - %s: R$ %.2f%n", entry.getKey(), entry.getValue()));
+                .forEach(entry -> System.out.printf("  - %s: R$ %.2f%n", entry.getKey(), entry.getValue()));
         
-        Map<String, Double> vendasPorCidade = registros.stream()
-                .filter(r -> "Men´s Footwear".equalsIgnoreCase(r.get("CategoriaNome")) && 
-                             LocalDate.parse(r.get("Data"), formatter).getYear() == 2013)
+        // 2. Vendas por Cidade
+        Map<String, Double> vendasPorCidade = registros2013.stream()
                 .collect(Collectors.groupingBy(
-                        r -> r.get("ClienteCidade"),
+                        r -> r.get("ClienteCidade").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Vendas")))
                 ));
         
-        System.out.println("  Vendas por cidade para 'Men´s Footwear' em 2013:");
+        System.out.println("  Vendas por cidade para 'Men´s Footwear' em 2013:");
         vendasPorCidade.entrySet().stream()
                 .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
-                .forEach(entry -> System.out.printf("  - %s: R$ %.2f%n", entry.getKey(), entry.getValue()));
+                .forEach(entry -> System.out.printf("  - %s: R$ %.2f%n", entry.getKey(), entry.getValue()));
     }
 
     // 10. Na Europa, quanto que se vende ($) para cada país?
     private static void vendasPorPaisNaEuropa() {
-        // Você precisará de uma lista de países da Europa para filtrar
-        Set<String> paisesEuropa = Set.of("France", "Germany", "United Kingdom", "Italy", "Spain", "Portugal"); 
+        // LISTA FINAL E CORRIGIDA de países europeus com base nos seus dados
+        Set<String> paisesEuropa = Set.of(
+            "Austria", "Belgium", "Denmark", "Finland", "France", "Germany", 
+            "Ireland", "Italy", "Norway", "Poland", "Portugal", "Spain", 
+            "Sweden", "Switzerland", "UK"
+        ); 
         
         Map<String, Double> vendasNaEuropaPorPais = registros.stream()
-                .filter(r -> paisesEuropa.contains(r.get("ClientePaís")))
+                .filter(r -> paisesEuropa.contains(r.get("ClientePaís").trim())) 
                 .collect(Collectors.groupingBy(
-                        r -> r.get("ClientePaís"),
+                        r -> r.get("ClientePaís").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Vendas")))
                 ));
         
@@ -239,6 +257,19 @@ public class LeitorCSV {
             System.out.printf("- %s: R$ %.2f%n", pais, vendas));
     }
     
+    // Método auxiliar para obter o ano de forma segura
+    private static int getYearSafe(CSVRecord r, DateTimeFormatter formatter) {
+        String dataStr = r.get("Data");
+        if (dataStr != null && !dataStr.trim().isEmpty()) {
+            try {
+                return LocalDate.parse(dataStr, formatter).getYear();
+            } catch (Exception e) {
+                return 0; 
+            }
+        }
+        return 0;
+    }
+
     // Método auxiliar para conversão segura de String para Double
     private static double parseDoubleSafe(String s) {
         try {
