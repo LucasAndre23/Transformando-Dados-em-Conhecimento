@@ -116,14 +116,14 @@ public class LeitorCSV {
         Set<String> transportadorasValidas = Set.of("1", "2", "3");
         
         Map<String, Double> fretePorTransportadora = registros.stream()
-                // FILTRO ADICIONADO: Mantém apenas os registros onde o ID é "1", "2" ou "3"
+                //  Mantém apenas os registros onde o ID é "1", "2" ou "3"
                 .filter(r -> transportadorasValidas.contains(r.get("TransportadoraID").trim()))
                 .collect(Collectors.groupingBy(
                         r -> r.get("TransportadoraID").trim(),
                         Collectors.summingDouble(r -> parseDoubleSafe(r.get("Frete")))
                 ));
 
-        // A impressão agora só incluirá os resultados para as transportadoras filtradas (1, 2, 3).
+        // resultados para as transportadoras filtradas (1, 2, 3).
         fretePorTransportadora.forEach((transportadoraID, frete) -> {
             System.out.printf("- Transportadora %s: R$ %.2f%n", transportadoraID, frete);
         });
@@ -194,7 +194,7 @@ public class LeitorCSV {
         
         String tendencia = "mantendo-se estável";
         if (vendas2012 > vendas2009) {
-            tendencia = "crescendo"; // CORRIGIDO: De "mrescendo" para "crescendo"
+            tendencia = "crescendo"; 
         } else if (vendas2012 < vendas2009) {
             tendencia = "decaindo";
         }
@@ -239,7 +239,7 @@ public class LeitorCSV {
 
     // 10. Na Europa, quanto que se vende ($) para cada país?
     private static void vendasPorPaisNaEuropa() {
-        // LISTA FINAL E CORRIGIDA de países europeus com base nos seus dados
+        // países europeus 
         Set<String> paisesEuropa = Set.of(
             "Austria", "Belgium", "Denmark", "Finland", "France", "Germany", 
             "Ireland", "Italy", "Norway", "Poland", "Portugal", "Spain", 
